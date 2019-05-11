@@ -1,0 +1,89 @@
+apply plugin: 'jacoco'
+
+jacoco {
+    toolVersion = "0.8.3"
+}
+
+tasks.withType(Test) {
+    jacoco.includeNoLocationClasses = true
+}
+
+project.afterEvaluate {
+    // Grab all build types and product flavors
+    def buildTypes = android.buildTypes.collect {
+        type -> type.name
+    }
+    def productFlavors = android.productFlavors.collect {
+        flavor -> flavor.name
+    }
+
+    // When no product flavors defined, use empty
+    if (!productFlavors) {
+        productFlavors.add('')
+    }
+
+    productFlavors.each { productFlavorName ->
+        buildTypes.each { buildTypeName ->
+            def sourceName
+            if (!productFlavorName) {
+                sourceName = "${buildTypeName}"
+            } else {
+                sourceName = "${productFlavorName}${buildTypeName.capitalize()}"
+            }
+
+            def testTaskName = "test${sourceName.capitalize()}UnitTest"
+            //Need a unique path per module
+            def testTaskNameOnly = "test${project.name.capitalize()}${sourceName.capitalize()}UnitTest"
+
+            task "${testTaskNameOnly}Coverage"(type: JacocoReport, dependsOn: "$testTaskName") {
+                group = "Reporting"
+                description = "Generate Jacoco coverage reports on the ${sourceName.capitalize()} build."
+
+                project.ext.set('jacocoCodeCoverage', true)
+
+                reports {
+                    xml.enabled = true
+                    html.enabled = true
+                }
+
+                def fileFilter = [
+                        '**/databinding/**/*.*',
+                        '**/android/databinding/*Binding.*',
+                        '**/BR.*',
+                        '**/R.*',
+                        '**/R$*.*',
+                        '**/BuildConfig.*',
+                        '**/Manifest*.*',
+                        '**/*Fragment*.*',
+                        '**/*Activity*.*',
+                        '**/*Adapter*.*',
+                        '**/*ViewPager*.*',
+                        '**/*ViewHolder*.*',
+                        '**/*Builder.*',
+                        '**/Dagger*Component.*', //Dagger2 generated code
+                        '**/Dagger*Component$Builder.*', //Dagger2 generated code
+                        '**/*_MembersInjector*.*', //Dagger2 generated code
+                        '**/*_*Factory*.*', //Dagger2 generated code
+                        '**/*Component*.*', //Dagger2 generated code
+                        '**/*Module*.*' //Dagger2 generated code
+                ]
+
+                def javaClasses = fileTree(
+                        dir: "${project.buildDir}/intermediates/javac/${sourceName}/compile${sourceName}JavaWithJavac/classes",
+                        excludes: fileFilter)
+                def kotlinClasses = fileTree(dir: "${buildDir}/tmp/kotlin-classes/${sourceName}", excludes: fileFilter)
+                classDirectories = files([javaClasses, kotlinClasses])
+
+                def coverageSourceDirs = [
+                        "$project.projectDir/src/main/java",
+                        "$project.projectDir/src/$productFlavorName/java",
+                        "$project.projectDir/src/$buildTypeName/java"
+                ]
+                
+                additionalSourceDirs = files(coverageSourceDirs)
+                sourceDirectories = files(coverageSourceDirs)
+                executionData = files("${project.buildDir}/jacoco/${testTaskName}.exec")
+            }
+        }
+    }
+}

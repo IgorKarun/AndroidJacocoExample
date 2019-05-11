@@ -15,6 +15,10 @@ buildscript {
     }
 }
 
+ext {
+    jacocoCodeCoverage = false //by default FALSE, because it has impact on regular project building time
+}
+
 allprojects {
     repositories {
         google()
