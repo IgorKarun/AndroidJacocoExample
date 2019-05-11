@@ -6,6 +6,9 @@ apply plugin: 'kotlin-android-extensions'
 
 android {
     compileSdkVersion 28
+
+    flavorDimensions "default"
+
     defaultConfig {
         applicationId "com.igorkarun.androidjacocoexample"
         minSdkVersion 23
@@ -18,6 +21,20 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+
+        debug {
+
+        }
+    }
+
+    productFlavors {
+        free {
+
+        }
+
+        paid {
+
         }
     }
 }
